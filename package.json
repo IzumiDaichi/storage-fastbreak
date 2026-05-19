@@ -1,0 +1,36 @@
+{
+  "name": "storage-fastbreak",
+  "version": "1.0.0",
+  "description": "Onion storage transaction tracker",
+  "main": "main.js",
+  "scripts": {
+    "start": "npx electron .",
+    "build": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.storagefastbreak.app",
+    "productName": "Storage FastBreak",
+    "files": [
+      "main.js",
+      "renderer/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": {
+        "target": "portable",
+        "arch": ["x64"]
+      },
+      "icon": "renderer/icon.ico"
+    },
+    "portable": {
+      "artifactName": "StorageFastBreak.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}
