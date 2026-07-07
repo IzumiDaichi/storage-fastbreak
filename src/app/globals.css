@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg:      #0f1117;
+    --bg2:     #1a1d27;
+    --bg3:     #22263a;
+    --accent:  #00c97a;
+    --accent2: #00a362;
+    --text:    #f0f0f0;
+    --text2:   #9aa0b4;
+    --border:  rgba(255,255,255,0.08);
+    --danger:  #e05252;
+    --radius:  10px;
+  }
+
+  @keyframes slideIn {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Inter, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Subtle scrollbars */
+  ::-webkit-scrollbar       { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+}
+
+@layer components {
+  /* App layout */
+  .app  { display: flex; height: 100vh; }
+  .main { flex: 1; overflow-y: auto; padding: 2rem; position: relative; background: var(--bg); }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  /* Cards */
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem;
+  }
+
+  /* Table */
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+  .data-table th {
+    background: var(--bg2);
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .data-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg3); }
+
+  /* Form inputs */
+  .form-input {
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .form-input:focus { outline: none; border-color: var(--accent); }
+}
+
+@media print {
+  body { background: #fff !important; overflow: visible !important; }
+  .app  { display: block !important; }
+  .sidebar { display: none !important; }
+  .main { padding: 0 !important; overflow: visible !important; background: #fff !important; }
+}

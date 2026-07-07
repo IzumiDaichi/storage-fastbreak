@@ -1,0 +1,50 @@
+"use client";
+
+import React from "react";
+import { fmt } from "@/lib/calc";
+
+interface ExpenseBreakdownProps {
+  expItems: Array<{ label: string; value: number }>;
+  totalExp: number;
+}
+
+export function ExpenseBreakdown({ expItems, totalExp }: ExpenseBreakdownProps) {
+  return (
+    <div className="p-5 rounded-xl border border-slate-800 bg-slate-950/20 backdrop-blur-sm flex flex-col justify-between">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider mb-6 text-slate-400">
+          Expense Categorization Breakdown
+        </p>
+        <div className="space-y-4">
+          {expItems.map((e) => {
+            const pct = totalExp > 0 ? (e.value / totalExp) * 100 : 0;
+            return (
+              <div key={e.label} className="group">
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-slate-400 group-hover:text-slate-200 transition-colors">
+                    {e.label}
+                  </span>
+                  <span className="font-mono font-bold text-amber-500">
+                    {fmt(e.value)}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-900 border border-slate-800/60 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-500"
+                    style={{ width: `${pct.toFixed(1)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex justify-between items-center text-xs mt-6 pt-4 font-bold border-t border-slate-900">
+        <span className="text-slate-400">Total Pipeline Overhead</span>
+        <span className="font-mono text-base text-rose-400">
+          {fmt(totalExp)}
+        </span>
+      </div>
+    </div>
+  );
+}

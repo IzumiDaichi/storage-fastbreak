@@ -1,36 +1,33 @@
 {
   "name": "storage-fastbreak",
-  "version": "1.0.0",
-  "description": "Onion storage transaction tracker",
-  "main": "main.js",
+  "version": "0.3.0",
+  "main": "main/main.js",
   "scripts": {
-    "start": "npx electron .",
-    "build": "electron-builder --win portable"
-  },
-  "build": {
-    "appId": "com.storagefastbreak.app",
-    "productName": "Storage FastBreak",
-    "files": [
-      "main.js",
-      "renderer/**/*",
-      "node_modules/**/*"
-    ],
-    "win": {
-      "target": {
-        "target": "portable",
-        "arch": ["x64"]
-      },
-      "icon": "renderer/icon.ico"
-    },
-    "portable": {
-      "artifactName": "StorageFastBreak.exe"
-    }
-  },
-  "devDependencies": {
-    "electron": "^34.0.0",
-    "electron-builder": "^26.8.1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "electron": "electron ."
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.0.0"
+    "dotenv": "^17.4.2",
+    "googleapis": "^173.0.0",
+    "lucide-react": "^1.18.0",
+    "next": "16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "electron": "^42.4.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
