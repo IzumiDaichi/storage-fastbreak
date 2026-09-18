@@ -25,12 +25,12 @@ export function StartingCapitalControl({
   saving,
 }: StartingCapitalControlProps) {
   return (
-    <div className="p-4 rounded-xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-md shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="card p-4 rounded-xl backdrop-blur-md shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div className="space-y-0.5">
-        <label className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+        <label className="text-xs font-bold tracking-wider text-[var(--text2)] uppercase">
           Starting Capital
         </label>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-[var(--text-subtle)]">
           {hasSavedCapital && !isEditing
             ? ""
             : "Enter your starting balance to begin tracking"}
@@ -49,7 +49,7 @@ export function StartingCapitalControl({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             disabled={hasSavedCapital && !isEditing}
-            className="text-xs pl-6 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono focus:outline-none focus:border-slate-700 w-44 disabled:opacity-40 disabled:bg-slate-900 transition-all"
+            className="text-sm pl-6 pr-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-white font-semibold focus:outline-none focus:border-slate-700 w-44 disabled:opacity-50 transition-all"
           />
         </div>
 
@@ -69,7 +69,7 @@ export function StartingCapitalControl({
               <button
                 onClick={handleCancelEdit}
                 type="button"
-                className="flex items-center justify-center gap-1 text-xs px-3 py-2 font-medium rounded-xl border border-slate-800 bg-slate-900/30 text-slate-400 hover:text-slate-200 hover:bg-slate-900/80 transition-all cursor-pointer"
+                className="flex items-center justify-center gap-1 text-xs px-3 py-2 font-medium rounded-xl border border-[var(--border)] bg-[var(--accent)] text-slate-400 hover:text-slate-200 hover[var(--accent2)]0/80 transition-all cursor-pointer"
               >
                 <X size={13} />
                 <span>Cancel</span>
@@ -80,7 +80,7 @@ export function StartingCapitalControl({
           <button
             onClick={() => setIsEditing(true)}
             type="button"
-            className="text-xs px-3 py-2 font-medium rounded-xl border border-slate-800 bg-slate-900/30 text-slate-300 hover:text-white hover:bg-slate-900/60 transition-all cursor-pointer"
+            className="text-xs px-3 py-2 font-medium rounded-xl border border-[var(--border)] bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-600 transition-all cursor-pointer"
           >
             Modify Balance
           </button>

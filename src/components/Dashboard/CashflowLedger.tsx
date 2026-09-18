@@ -25,7 +25,7 @@ export function CashflowLedger({
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text2)]">
           Cashflow Ledger From Capital
         </h2>
         
@@ -58,10 +58,10 @@ export function CashflowLedger({
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-950/20 overflow-hidden shadow-2xl">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg2)] overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs min-w-[1100px]">
-            <thead className="bg-slate-900/80 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800/80">
+            <thead className="bg-slate-900/80 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-[var(--border)]">
               <tr>
                 <th onClick={toggleSortOrder} className="p-3.5 cursor-pointer select-none hover:bg-slate-800 hover:text-white transition-colors group/header">
                   <div className="flex items-center gap-2">
@@ -71,16 +71,16 @@ export function CashflowLedger({
                 </th>
                 <th className="p-3.5">Category</th>
                 <th className="p-3.5">Classification</th>
-                <th className="p-3.5">Allocated Tags</th>
-                <th className="p-3.5">Context Narrative</th>
+                <th className="p-3.5">Tags</th>
+                <th className="p-3.5">Description</th>
                 <th className="p-3.5 text-right">Bags</th>
                 <th className="p-3.5 text-right">Inflow (₱)</th>
                 <th className="p-3.5 text-right">Outflow (₱)</th>
-                <th className="p-3.5 text-right">Logistics &amp; Fees (₱)</th>
-                <th className="p-3.5 text-right">Running Position (₱)</th>
+                <th className="p-3.5 text-right">Other Fees (₱)</th>
+                <th className="p-3.5 text-right">Running Balance (₱)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-900 text-slate-300 font-medium">
+            <tbody className="divide-y divide-[var(--border)] text-slate-300 font-medium">
               {paginatedLedgerRows.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="text-center py-16 text-slate-500 font-medium italic">
@@ -91,17 +91,19 @@ export function CashflowLedger({
                 paginatedLedgerRows.map((row) => {
                   const tags = (row.tags || "").split(",").map((s: string) => s.trim()).filter(Boolean);
                   return (
-                    <tr key={row.id} className="hover:bg-slate-900/40 transition-colors">
-                      <td className="p-3.5 font-mono text-slate-400">{row.date}</td>
+                    <tr key={row.id} className="hover:bg-[var(--bg4)] transition-colors">
+                      <td className="p-3.5 font-mono text-[var(--text-subtle)]">{row.date}</td>
                       <td className="p-3.5"><CategoryBadge cat={row.category} /></td>
-                      <td className="p-3.5 text-slate-400 font-semibold">{row.classification || "—"}</td>
+                      <td className="p-3.5 text-[var(--text-subtle)] font-semibold">{row.classification || "—"}</td>
                       <td className="p-3.5">
                         <div className="flex flex-wrap gap-1">
                           {tags.map((tag: string) => <TagPill key={tag} tag={tag} />)}
                         </div>
                       </td>
-                      <td className="p-3.5 truncate max-w-[200px]" title={row.description}>{row.description || "—"}</td>
-                      <td className="p-3.5 text-right font-mono font-bold">{row.bags.toLocaleString()}</td>
+                      <td className="p-3.5 truncate max-w-[200px] text-[var(--text-subtle)]" title={row.description}>
+                        {row.description || "—"}
+                      </td>
+                      <td className="p-3.5 text-right font-mono font-bold text-[var(--text-subtle)]">{row.bags.toLocaleString()}</td>
                       <td className="p-3.5 text-right font-mono text-emerald-400">{row.inflow > 0 ? fmt(row.inflow) : "—"}</td>
                       <td className="p-3.5 text-right font-mono text-rose-400">{row.outflow > 0 ? fmt(row.outflow) : "—"}</td>
                       <td className="p-3.5 text-right font-mono text-amber-500">{row.ex > 0 ? fmt(row.ex) : "—"}</td>

@@ -1,38 +1,76 @@
 @import "tailwindcss";
 
+/* =========================================================
+   THEME
+   ========================================================= */
+
 @layer base {
   :root {
-    --bg:      #0f1117;
-    --bg2:     #1a1d27;
-    --bg3:     #22263a;
-    --accent:  #00c97a;
-    --accent2: #00a362;
-    --text:    #f0f0f0;
-    --text2:   #9aa0b4;
-    --border:  rgba(255,255,255,0.08);
-    --danger:  #e05252;
-    --radius:  10px;
+    /* Light theme */
+    --bg: #f5f7f4;
+    --bg2: #ffffff;
+    --bg3: #e8eee9;
+    --bg4: rgba(0, 0, 0, 0.04);
+
+    --accent: #2563eb;
+    --accent2: #1d4ed8;
+    --mutedaccent: #eff6ff;
+
+    --text: #2f3849;
+    --text2: #4b5563;
+
+    --border: rgba(15, 23, 42, 0.14);
+    --danger-border: #fecdd3;
+    --danger: #b42318;
+
+    --surface: #ffffff;
+    --surface-muted: #f8fafc;
+    --surface-raised: #eef4ff;
+
+    --text-strong: #111827;
+    --text-muted: #59675f;
+    --text-subtle: #718078;
+
+    --control-border: rgba(15, 23, 42, 0.14);
+    --button-on-accent: #ffffff;
+
+    --sell-bg: rgba(16, 185, 129, 0.2);
+    --sell-border: #10b981;
+
+    --buy-bg: rgba(251, 113, 133, 0.2);
+    --buy-border: #f43f5e;
+
+    --tag-bg: #eff6ff;
+    --tag-text: #1d4ed8;
+    --link-text: #1d4ed8;
+
+    --radius: 10px;
   }
 
   @keyframes slideIn {
-  from {
-    transform: translateY(15px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
+    from {
+      transform: translateY(15px);
+      opacity: 0;
+    }
 
-.animate-slide-in {
-  animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .animate-slide-in {
+    animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
   body {
-    font-family: 'Segoe UI', Inter, sans-serif;
+    font-family: "Segoe UI", Inter, sans-serif;
     background: var(--bg);
     color: var(--text);
     height: 100vh;
@@ -40,18 +78,75 @@
   }
 
   /* Subtle scrollbars */
-  ::-webkit-scrollbar       { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }
 
-@layer components {
-  /* App layout */
-  .app  { display: flex; height: 100vh; }
-  .main { flex: 1; overflow-y: auto; padding: 2rem; position: relative; background: var(--bg); }
+/* =========================================================
+   COMPONENTS
+   ========================================================= */
 
-  /* Sidebar */
+@layer components {
+  /* =======================================================
+     APP LAYOUT
+     ======================================================= */
+
+  .app {
+    display: flex;
+    height: 100vh;
+  }
+
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    position: relative;
+    background: var(--bg);
+  }
+
+  .content-area {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* Remove focus outline from Recharts charts */
+.recharts-wrapper,
+.recharts-wrapper svg,
+.recharts-surface {
+  outline: none !important;
+  user-select: none;
+}
+
+  /* =======================================================
+     SMALL ELEMENTS
+     ======================================================= */
+
+  .term {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: var(--bg);
+    color: var(--accent);
+  }
+
+  /* =======================================================
+     SIDEBAR
+     ======================================================= */
+
   .sidebar {
     width: 220px;
     background: var(--bg2);
@@ -63,22 +158,116 @@
     overflow-y: auto;
   }
 
-  /* Cards */
-  .metric-card {
+  /* =======================================================
+   THEME TOGGLE BUTTON
+   ======================================================= */
+
+.theme-toggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+body.light .theme-toggle:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+body.dark .theme-toggle:hover {
+  background: var(--bg3);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+  /* =======================================================
+     FILTERS
+     ======================================================= */
+
+  .filter{
+    background-color: var(--bg2);
+  }
+
+  .filter input,
+  .filter select {
     background: var(--bg2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem;
+    font-size: 13px;
+  }
+
+  .filtre:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* =======================================================
+     CARDS
+     ======================================================= */
+
+  .card {
+    background: var(--bg4);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 1.1rem;
   }
 
-  /* Table */
+  /* =======================================================
+     TRANSACTIONS TABLE
+     ======================================================= */
+
+  .transactions-table {
+    background: var(--bg4);
+    border-color: var(--border);
+  }
+
+  .uid,
+  .classification,
+  .description,
+  .bags,
+  .rate,
+  .gross {
+    color: var(--text-strong);
+  }
+
+  .date {
+    color: var(--text-subtle);
+  }
+
+  .link {
+    color: var(--accent2);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .link:hover {
+    color: var(--accent);
+  }
+
   .table-wrap {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
   }
 
-  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
 
   .data-table th {
     background: var(--bg2);
@@ -87,7 +276,7 @@
     font-size: 11px;
     color: var(--text2);
     text-transform: uppercase;
-    letter-spacing: .05em;
+    letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
@@ -99,26 +288,350 @@
     white-space: nowrap;
   }
 
-  .data-table tr:last-child td { border-bottom: none; }
-  .data-table tr:hover td { background: var(--bg3); }
-
-  /* Form inputs */
-  .form-input {
-    background: var(--bg3);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 13px;
-    width: 100%;
+  .data-table tr:last-child td {
+    border-bottom: none;
   }
 
-  .form-input:focus { outline: none; border-color: var(--accent); }
+  .data-table tr:hover td {
+    background: var(--bg3);
+  }
+
+  .row-buy:hover {
+    background-color: rgba(251, 113, 133, 0.4) !important;
+  }
+
+  .row-sell:hover {
+    background-color: rgba(16, 185, 129, 0.4) !important;
+  }
+
+
+/* Danger — destructive actions */
+.btn-danger {
+  color: var(--danger);
+  border-color: var(--danger-border);
 }
 
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--danger) !important;
+  color: #fff !important;
+  border-color: var(--danger) !important;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+body.light .theme-toggle:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+body.dark .theme-toggle:hover {
+  background: var(--bg3);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+  /* =======================================================
+     TRANSACTION ACTION BUTTONS
+     ======================================================= */
+
+  body.light .transactions-table .transaction-action,
+  body.dark .transactions-table .transaction-action {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    border: 1px solid var(--bg3);
+    background-color: var(--bg2);
+  }
+
+  .receipt-action{
+    color: var(--text2);
+    background-color: var(--bg2);
+  }
+
+  .receipt-action:hover{
+    color: #fff;
+    background-color: var(--accent);  
+  }
+
+  body.light .transactions-table .transaction-action {
+    color: var(--text2);
+    background-color: var(--bg2);
+    border-color: var(--bg3);
+  }
+
+  body.light
+    .transactions-table
+    .transaction-action:hover:not(:disabled) {
+    color: var(--bg);
+    background-color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  body.dark .transactions-table .transaction-action {
+    color: var(--text2);
+    background-color: var(--bg);
+    border-color: var(--bg3);
+  }
+
+  body.dark
+    .transactions-table
+    .transaction-action:hover:not(:disabled) {
+    color: var(--accent);
+    background-color: var(--bg2);
+    border-color: var(--bg3);
+  }
+
+  body .transactions-table .transaction-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* =======================================================
+     RECEIPT BUTTON
+     
+     Receipt is separate from transaction actions.
+     ======================================================= */
+
+  body.light .transactions-table .receipt-action,
+  body.dark .transactions-table .receipt-action {
+    cursor: pointer;
+  }
+
+  /* =======================================================
+     PAGINATION
+     ======================================================= */
+
+  .pagination-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background-color: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition:
+      color 150ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease;
+  }
+
+  body.dark .pagination-action:hover:not(:disabled) {
+    background-color: var(--accent);
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+    body.light .pagination-action:hover:not(:disabled) {
+    background-color: var(--accent);
+    border-color: var(--border);
+    color: var(--bg);
+  }
+
+  .pagination-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* =========================================================
+   THEME UTILITIES
+   ========================================================= */
+
+@layer utilities {
+  /* =======================================================
+     LIGHT THEME
+     ======================================================= */
+
+  body.light {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  body.light input,
+  body.light select,
+  body.light textarea {
+    color: var(--text-strong) !important;
+    background-color: var(--surface) !important;
+    border-color: var(--control-border) !important;
+  }
+
+  body.light input::placeholder,
+  body.light textarea::placeholder {
+    color: var(--text2);
+  }
+
+  body.light option {
+    color: var(--text-strong);
+    background: var(--surface);
+  }
+
+  body.light ::-webkit-scrollbar-thumb {
+    background: rgba(28, 51, 39, 0.2);
+  }
+
+  /* Light sidebar */
+  body.light .sidebar nav a:hover,
+  body.light .sidebar nav button:hover,
+  body.light .sidebar .group:hover {
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+    border-color: #93c5fd !important;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.14);
+  }
+
+  body.light .sidebar nav a:active,
+  body.light .sidebar nav button:active,
+  body.light .sidebar .group:active {
+    background: #bfdbfe !important;
+    color: #1e3a8a !important;
+    transform: translateY(1px);
+  }
+
+  body.light .sidebar nav a:focus-visible,
+  body.light .sidebar nav button:focus-visible,
+  body.light .sidebar .group:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.28);
+    outline-offset: 2px;
+  }
+
+  /* =======================================================
+     DARK THEME
+     ======================================================= */
+
+  body.dark {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #0e1527;
+    --bg4: rgb(2 6 23 / 0.2);
+
+    /* Blue accent */
+    --accent: #3b82f6;
+    --accent2: #2563eb;
+    --mutedaccent: #0f172a;
+
+    --text: #f0f0f0;
+    --text2: #9aa0b4;
+
+    --border: rgba(255, 255, 255, 0.08);
+
+    --surface: #1a1d27;
+    --surface-muted: #22263a;
+    --surface-raised: #2b3145;
+
+    --text-strong: #f0f0f0;
+    --text-muted: #9aa0b4;
+    --text-subtle: #747d96;
+
+    --control-border: rgba(255, 255, 255, 0.12);
+    --button-on-accent: #ffffff;
+
+    --sell-bg: rgba(16, 185, 129, 0.2);
+    --sell-border: #10b981;
+
+    --buy-bg: rgba(251, 113, 133, 0.2);
+    --buy-border: #e05252;
+
+    --tag-bg: rgba(37, 99, 235, 0.2);
+    --tag-text: #60a5fa;
+
+    --link-text: #93c5fd;
+
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* Dark inputs */
+  body.dark input,
+  body.dark select,
+  body.dark textarea {
+    color: var(--text-strong) !important;
+    background-color: var(--surface) !important;
+    border-color: var(--control-border) !important;
+  }
+
+  body.dark input::placeholder,
+  body.dark textarea::placeholder {
+    color: var(--text2);
+  }
+
+  /* Dark content */
+  body.dark .content-area,
+  body.dark .transactions-table {
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* Dark sidebar */
+  body.dark .sidebar {
+    background: var(--bg2);
+    border-color: var(--border);
+  }
+
+  body.dark .transactions-table thead {
+    background: var(--bg3);
+    color: var(--text2);
+    border-color: var(--border);
+  }
+
+  /* Dark sidebar interactions */
+  body.dark .sidebar nav a:hover,
+  body.dark .sidebar nav button:hover,
+  body.dark .sidebar .group:hover {
+    background: var(--bg3) !important;
+    color: var(--accent) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 3px 10px rgba(59, 130, 246, 0.12);
+  }
+
+  body.dark .sidebar nav a:active,
+  body.dark .sidebar nav button:active,
+  body.dark .sidebar .group:active {
+    background: var(--surface-raised) !important;
+    color: var(--accent) !important;
+  }
+}
+
+/* =========================================================
+   PRINT
+   ========================================================= */
+
 @media print {
-  body { background: #fff !important; overflow: visible !important; }
-  .app  { display: block !important; }
-  .sidebar { display: none !important; }
-  .main { padding: 0 !important; overflow: visible !important; background: #fff !important; }
+  body {
+    background: #fff !important;
+    overflow: visible !important;
+  }
+
+  .app {
+    display: block !important;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .main {
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
 }

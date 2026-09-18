@@ -4,7 +4,7 @@ import { FileJson } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
 export function ImportButton() {
-  const { setTransactions, setTerms, terms, transactions, addToast } = useApp() as any;
+  const { setTransactions, setTerms, setClassifications, setCapitalRecords, switchTerm, terms, transactions, addToast } = useApp() as any;
   const [importStatus, setImportStatus] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -29,8 +29,8 @@ export function ImportButton() {
         const rawText = event.target?.result as string;
         const data = JSON.parse(rawText);
 
-        if (!data.terms && !data.transactions && !data.capital) {
-          throw new Error("JSON missing expected keys: terms, transactions, or capital");
+        if (!data.terms && !data.transactions && !data.capitalRecords && !data.capital) {
+          throw new Error("JSON missing expected keys: terms, transactions, capitalRecords, or capital");
         }
 
         console.log("Importing Data:", data);
@@ -38,14 +38,18 @@ export function ImportButton() {
         const newTerms = data.terms || [];
         const newTransactions = data.transactions || [];
         const newClassifications = data.classifications || [];
+        const newCapitalRecords = data.capitalRecords || (data.capital ? [data.capital] : []);
         const newActiveTerm = data.activeTerm || (newTerms.length > 0 ? newTerms[0] : null);
 
         // 1. Update React state
         setTerms(newTerms);
         setTransactions(newTransactions);
+        setClassifications(newClassifications);
+        setCapitalRecords(newCapitalRecords);
+        switchTerm(newActiveTerm);
 
         // 2. Persist directly to Electron's file storage (source of truth on reload)
-        if (typeof window !== "undefined" && window.electronAPI) {
+        if (typeof window !== "undefined" && window.electronAPI?.saveLocalData) {
           const timestamp = new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -55,6 +59,7 @@ export function ImportButton() {
             terms: newTerms,
             transactions: newTransactions,
             classifications: newClassifications,
+            capitalRecords: newCapitalRecords,
             activeTerm: newActiveTerm,
             lastBackup: timestamp,
           });
@@ -77,8 +82,8 @@ export function ImportButton() {
 
   return (
     <div className="w-full">
-      <label className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs cursor-pointer border border-dashed border-[var(--border)] text-[var(--text2)] bg-transparent hover:bg-slate-800/20 transition-all">
-        <FileJson size={13} /> Import Backup
+      <label className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs cursor-pointer border border-dashed border-[var(--border)] text-[var(--text2)] bg-transparent hover:text-white hover:bg-[var(--accent)] transition-all">
+        <FileJson size={13} /> Import Data
         <input
           ref={fileInputRef}
           type="file"

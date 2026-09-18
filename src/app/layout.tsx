@@ -1,6 +1,7 @@
 import Sidebar from "@/components/Sidebar";
 import ToastContainer from "@/components/ToastContainer";
-import { AppProvider } from "@/context/AppContext";
+import { AppProvider } from "@/context/AppProvider";
+import { ThemeProvider } from "@/context/ThemeProvider";
 import "./globals.css";
 
 export default function RootLayout({
@@ -10,7 +11,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-screen overflow-hidden">
-      <body className="h-screen overflow-hidden text-slate-200 antialiased">
+      <body className="light h-screen overflow-hidden antialiased">
+        <ThemeProvider>
         <AppProvider>
           <div className="flex h-screen w-screen overflow-hidden">
             <Sidebar />
@@ -20,6 +22,7 @@ export default function RootLayout({
           </div>
           <ToastContainer />
         </AppProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

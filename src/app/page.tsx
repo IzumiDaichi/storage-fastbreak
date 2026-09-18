@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
-import { calcTxn, calcNetProfit, fmt, fmtSigned } from "@/lib/calc";
+import { fmt, fmtSigned } from "@/lib/calc";
 import { LoadingSpinner, NoTerm } from "@/components/ui";
 import { Activity, ShoppingBag, ArrowDownLeft, ArrowUpRight, Scale, TrendingUp, Wallet } from "lucide-react";
+import { getClassificationItems, getCashflowRows, getDashboardMetrics } from "@/lib/dashboard";
 
 // Import modular architectural components
-import { StartingCapitalControl } from "@/components/StartingCapital";
-import { DashboardCharts } from "@/components/DashboardCharts";
-import { ExpenseBreakdown } from "@/components/ExpenseBreakdown";
-import { CashflowLedger } from "@/components/CashflowLedger";
+import { StartingCapitalControl } from "@/components/Dashboard/StartingCapital";
+import { DashboardCharts } from "@/components/Dashboard/DashboardCharts";
+import { ExpenseBreakdown } from "@/components/Dashboard/ExpenseBreakdown";
+import { CashflowLedger } from "@/components/Dashboard/CashflowLedger";
 
 // Internal Sub-component MetricCard
 interface MetricCardProps {
@@ -22,9 +23,9 @@ interface MetricCardProps {
   icon?: React.ReactNode;
 }
 
-function MetricCard({ label, value, sub, valueColorClass = "text-white", highlight, icon }: MetricCardProps) {
+function MetricCard({ label, value, sub, valueColorClass = "text-[var(--text)]", highlight, icon }: MetricCardProps) {
   return (
-    <div className={`p-4 rounded-xl border transition-all duration-200 relative overflow-hidden ${highlight ? "border-emerald-500/30 bg-emerald-500/[0.04] shadow-md shadow-emerald-500/5" : "border-slate-800 bg-slate-950/40 backdrop-blur-sm"}`}>
+    <div className={`p-4 rounded-xl border transition-all duration-200 relative overflow-hidden ${highlight ? "border-emerald-500/30 bg-emerald-500/[0.04] shadow-md shadow-emerald-500/5" : "border-[var(--border)] bg-[var(--bg4)] backdrop-blur-sm"}`}>
       <div className="flex items-center justify-between gap-2 mb-2">
         <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">{label}</p>
         {icon && <div className="text-slate-500">{icon}</div>}
@@ -36,7 +37,7 @@ function MetricCard({ label, value, sub, valueColorClass = "text-white", highlig
 }
 
 export default function DashboardPage() {
-  const { transactions = [], activeTerm, loading } = useApp() as any;
+  const { transactions = [], activeTerm, loading, capitalRecords = [], updateCapitalRecord } = useApp() as any;
   const [starting, setStarting] = useState<number>(0);
   const [inputValue, setInputValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,43 +46,29 @@ export default function DashboardPage() {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const rowsPerPage = 10;
 
-  const localStorageKey = `local_starting_capital_${activeTerm ? String(activeTerm.id || activeTerm.name || "default") : "default"}`;
-
   useEffect(() => {
-    const savedLocalCapital = localStorage.getItem(localStorageKey);
-    if (savedLocalCapital) {
-      const parsed = parseFloat(savedLocalCapital) || 0;
-      setStarting(parsed);
-      setInputValue(String(parsed));
-    } else {
+    if (!activeTerm) {
       setStarting(0);
       setInputValue("");
+      setIsEditing(false);
+      setCurrentPage(1);
+      return;
     }
+
+    const record = capitalRecords.find((c: any) => c.term_id === activeTerm.id);
+    const parsed = record ? record.starting_capital : 0;
+    setStarting(parsed);
+    setInputValue(record ? String(parsed) : "");
     setIsEditing(false);
     setCurrentPage(1);
-  }, [localStorageKey, activeTerm]);
+  }, [activeTerm, capitalRecords]);
 
   const termTransactions = useMemo(() => {
     if (!activeTerm) return [];
     return transactions.filter((t: any) => t.term_id === activeTerm.id || t.term === activeTerm.name);
   }, [transactions, activeTerm]);
 
-  const financialMetrics = useMemo(() => {
-    const buyTxns = termTransactions.filter((t: any) => t.category === "Buy");
-    const sellTxns = termTransactions.filter((t: any) => t.category === "Sell");
-    const { sellRevenue, buyCost, totalExp, netProfit } = calcNetProfit(termTransactions);
-
-    const totalBags = termTransactions.reduce((s: number, t: any) => s + (t.bags || 0), 0);
-    const totalAgent = termTransactions.reduce((s: number, t: any) => s + (t.agent_bags || 0) * (t.agent_rate || 0), 0);
-    const totalTransfer = termTransactions.reduce((s: number, t: any) => s + (t.transfer_bags || 0) * (t.transfer_rate || 0), 0);
-    const totalOther = termTransactions.reduce((s: number, t: any) => s + (t.other_exp || 0), 0);
-
-    const roi = buyCost > 0 ? (netProfit / buyCost) * 100 : 0;
-    const margin = sellRevenue > 0 ? (netProfit / sellRevenue) * 100 : 0;
-    const currentCashBalance = starting + sellRevenue - buyCost - totalExp;
-
-    return { buyTxns, sellTxns, sellRevenue, buyCost, totalExp, netProfit, totalBags, totalAgent, totalTransfer, totalOther, roi, margin, currentCashBalance };
-  }, [termTransactions, starting]);
+  const financialMetrics = useMemo(() => getDashboardMetrics(termTransactions, starting), [termTransactions, starting]);
 
   const chartData = useMemo(() => {
     const { buyCost, sellRevenue, netProfit } = financialMetrics;
@@ -101,35 +88,12 @@ export default function DashboardPage() {
     ];
   }, [financialMetrics]);
 
-  const classItems = useMemo(() => {
-    const classMap: Record<string, { bags: number; count: number; net: number }> = {};
-    termTransactions.forEach((t: any) => {
-      const key = t.classification || "Unclassified";
-      if (!classMap[key]) classMap[key] = { bags: 0, count: 0, net: 0 };
-      classMap[key].bags += t.bags || 0;
-      classMap[key].count += 1;
-      classMap[key].net += calcTxn(t).total;
-    });
-    return Object.entries(classMap).sort((a, b) => b[1].net - a[1].net);
-  }, [termTransactions]);
+  const classItems = useMemo(() => getClassificationItems(termTransactions), [termTransactions]);
 
-  const cashflowLedgerRows = useMemo(() => {
-    const baseChronological = [...termTransactions].sort((a, b) => a.date.localeCompare(b.date));
-    let running = starting;
-
-    const mapped = baseChronological.map((t) => {
-      const ag = (t.agent_bags || 0) * (t.agent_rate || 0);
-      const tr = (t.transfer_bags || 0) * (t.transfer_rate || 0);
-      const ex = ag + tr + (t.other_exp || 0);
-      const inflow = t.category === "Sell" ? (t.bags || 0) * (t.price || 0) : 0;
-      const outflow = t.category === "Buy" ? (t.bags || 0) * (t.price || 0) : 0;
-      running = running + inflow - outflow - ex;
-
-      return { id: t.id || `${t.date}-${t.description}`, date: t.date, category: t.category, classification: t.classification, tags: t.tags, description: t.description, bags: t.bags || 0, inflow, outflow, ex, runningPosition: running };
-    });
-
-    return sortOrder === "desc" ? mapped.reverse() : mapped;
-  }, [termTransactions, starting, sortOrder]);
+  const cashflowLedgerRows = useMemo(
+    () => getCashflowRows(termTransactions, starting, sortOrder),
+    [termTransactions, starting, sortOrder]
+  );
 
   const totalPages = Math.ceil(cashflowLedgerRows.length / rowsPerPage) || 1;
   const paginatedLedgerRows = useMemo(() => {
@@ -139,10 +103,10 @@ export default function DashboardPage() {
 
   const handleApplyClick = async () => {
     const targetValue = parseFloat(inputValue) || 0;
-    if (targetValue < 0) return;
+    if (targetValue < 0 || !activeTerm) return;
     setSaving(true);
     try {
-      localStorage.setItem(localStorageKey, String(targetValue));
+      await updateCapitalRecord(activeTerm.id, targetValue);
       setStarting(targetValue);
       setIsEditing(false);
     } catch (err) {
@@ -160,14 +124,15 @@ export default function DashboardPage() {
       {/* HEADER NAVIGATION AREA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-900">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-strong)]">
             Operations Dashboard
           </h1>
           <p className="text-xs text-slate-400 mt-1">Real-time tracking of positions and pipelines.</p>
         </div>
-        <div>
-          <span className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 text-amber-400 font-mono text-xs font-semibold tracking-wide">
-            Scope Term: {activeTerm.name}
+        <div className="term px-2.5 py-2 border rounded font-mono text-xs font-semibold tracking-wide flex flex-row gap-2">
+          <p> Scope Term: </p>
+          <span className="uppercase">
+           {activeTerm.name}
           </span>
         </div>
       </div>
@@ -206,33 +171,33 @@ export default function DashboardPage() {
 
       {/* RATIOS & PERFORMANCE GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="p-5 rounded-xl border border-slate-800 bg-slate-950/20 backdrop-blur-sm">
-          <p className="text-xs font-bold uppercase tracking-wider mb-4 text-slate-400">Profit &amp; Return Metrics</p>
-          <div className="divide-y divide-slate-900 text-xs font-medium">
+        <div className="card p-5 rounded-xl backdrop-blur-sm">
+          <p className="text-xs font-bold uppercase tracking-wider mb-4 text-[var(--text2)]">Profit &amp; Return Metrics</p>
+          <div className="divide-y divide-[var(--border)] text-xs font-medium">
             {[
-              { label: "Total Sales", value: fmt(financialMetrics.sellRevenue), cls: "text-emerald-400" },
-              { label: "Total Purchases", value: fmt(financialMetrics.buyCost), cls: "text-rose-400" },
+              { label: "Total Sales", value: fmt(financialMetrics.sellRevenue), cls: "text-[var(--text-subtle)]" },
+              { label: "Total Purchases", value: fmt(financialMetrics.buyCost), cls: "text-[var(--text-subtle)]" },
               { label: "Net Profit Position", value: fmtSigned(financialMetrics.netProfit), cls: financialMetrics.netProfit >= 0 ? "text-emerald-400" : "text-rose-400 font-bold" },
             ].map((r) => (
-              <div key={r.label} className="flex justify-between items-center py-3 px-1 rounded hover:bg-slate-900/20">
-                <span className="text-slate-400">{r.label}</span>
+              <div key={r.label} className="flex justify-between items-center py-3 px-1 rounded hover:bg-[var(--bg4)]">
+                <span className="text-[var(--text-subtle)]">{r.label}</span>
                 <span className={`font-mono font-semibold ${r.cls}`}>{r.value}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="p-5 rounded-xl border border-slate-800 bg-slate-950/20 backdrop-blur-sm">
-          <p className="text-xs font-bold uppercase tracking-wider mb-4 text-slate-400">Classification Performance</p>
-          <div className="divide-y divide-slate-900 text-xs font-medium overflow-y-auto max-h-[290px] pr-1">
+        <div className="card p-5 rounded-xl backdrop-blur-sm">
+          <p className="text-xs font-bold uppercase tracking-wider mb-4 text-[var(--text2)]">Classification Performance</p>
+          <div className="divide-y divide-[var(--border)] text-xs font-medium overflow-y-auto max-h-[290px] pr-1">
             {classItems.length === 0 ? (
-              <p className="text-xs text-center py-16 text-slate-500 italic">No structural variants logged.</p>
+              <p className="text-xs text-center py-16 text-[var(--text-subtle)] italic">No structural variants logged.</p>
             ) : (
               classItems.map(([name, d]) => (
-                <div key={name} className="flex justify-between items-center py-3 px-1 rounded hover:bg-slate-900/20">
+                <div key={name} className="flex justify-between items-center py-3 px-1 rounded hover:bg-[var(--bg4)]">
                   <div className="space-y-0.5">
-                    <span className="text-slate-300 font-semibold">{name}</span>
-                    <span className="block text-[10px] text-slate-500 font-mono">({d.count} txns · {d.bags} bags)</span>
+                    <span className="text-[var(--text-subtle)] font-semibold">{name}</span>
+                    <span className="block text-[10px] text-[var(--text-subtle)] font-mono">({d.count} transactions · {d.bags} bags)</span>
                   </div>
                   <span className={`font-mono font-bold ${d.net >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{fmtSigned(d.net)}</span>
                 </div>

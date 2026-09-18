@@ -7,15 +7,15 @@ import { calcTxn, calcNetProfit, fmt, fmtSigned } from "@/lib/calc";
 type ViewMode = "combined" | "separated";
 
 export default function PrintPage() {
-  const { transactions = [], activeTerm } = useApp();
+  const { transactions = [], activeTerm, capitalRecords = [] } = useApp();
   const [startingCapital, setStartingCapital] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("combined");
 
   useEffect(() => {
     if (!activeTerm) return;
-    const raw = localStorage.getItem(`local_starting_capital_${activeTerm.id}`);
-    setStartingCapital(raw ? Number(raw) : 0);
-  }, [activeTerm]);
+    const record = capitalRecords.find((c) => c.term_id === activeTerm.id);
+    setStartingCapital(record ? record.starting_capital : 0);
+  }, [activeTerm, capitalRecords]);
 
   const termTransactions = transactions.filter((t: any) => {
     if (!activeTerm) return false;
@@ -246,9 +246,14 @@ export default function PrintPage() {
       {/* Screen-only header */}
       <div className="py-6 max-w-[1600px] mx-auto flex items-center justify-between print:hidden">
         <div>
-          <h1 className="text-2xl font-bold">Print Report</h1>
-          <p className="text-sm mt-1" style={{ color: "var(--text2)" }}>
-            Term: {activeTerm?.name}
+          <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-strong)]">
+            Print Report
+          </h1>
+          <p className="text-xs mt-1 flex items-center gap-1.5 text-slate-400">
+            Active Term:
+            <span className="term border uppercase font-bold tracking-wide">
+              {activeTerm?.name}
+            </span>
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -262,7 +267,7 @@ export default function PrintPage() {
               className="px-3 py-1.5 rounded-md cursor-pointer transition-all"
               style={{
                 background: viewMode === "combined" ? "var(--accent)" : "transparent",
-                color: viewMode === "combined" ? "#000" : "var(--text2)",
+                color: viewMode === "combined" ? "#fff" : "var(--text2)",
               }}
             >
               Combined
@@ -272,7 +277,7 @@ export default function PrintPage() {
               className="px-3 py-1.5 rounded-md cursor-pointer transition-all"
               style={{
                 background: viewMode === "separated" ? "var(--accent)" : "transparent",
-                color: viewMode === "separated" ? "#000" : "var(--text2)",
+                color: viewMode === "separated" ? "#fff " : "var(--text2)",
               }}
             >
               Buy / Sell Separate
@@ -281,7 +286,7 @@ export default function PrintPage() {
           <button
             onClick={() => window.print()}
             className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer"
-            style={{ background: "var(--accent)", color: "#000" }}
+            style={{ background: "var(--accent)", color: "#fff" }}
           >
             🖨️ Print
           </button>

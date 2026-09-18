@@ -4,11 +4,11 @@ import { Download } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
 export function ExportButton() {
-  const { transactions = [], terms = [], classifications = [], activeTerm } = useApp();
+  const { transactions = [], terms = [], classifications = [], activeTerm, capitalRecords = [] } = useApp();
 
   function handleExportData() {
     try {
-      console.log("Electron Live Context Hook Snapshot:", { terms, transactions, classifications, activeTerm });
+      console.log("Electron Live Context Hook Snapshot:", { terms, transactions, classifications, activeTerm, capitalRecords });
 
       if (!transactions.length && !terms.length) {
         alert("No active ledger records found to export yet!");
@@ -19,6 +19,7 @@ export function ExportButton() {
         terms,
         transactions,
         classifications,
+        capitalRecords,
         activeTerm,
       };
 
@@ -47,10 +48,10 @@ export function ExportButton() {
     <button
       type="button"
       onClick={handleExportData}
-      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-800/40 text-slate-400 hover:text-slate-200 text-xs font-bold transition-all cursor-pointer group"
+      className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs cursor-pointer border border-dashed border-[var(--border)] text-[var(--text2)] bg-transparent hover:text-white hover:bg-[var(--accent)] transition-all"
     >
-      <Download size={14} className="text-slate-500 group-hover:text-slate-400 transition-colors flex-shrink-0" />
-      <span>Export System Data</span>
+      <Download size={14} className="transition-colors flex-shrink-0" />
+      <span>Export Data</span>
     </button>
   );
 }

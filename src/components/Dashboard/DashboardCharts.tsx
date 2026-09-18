@@ -10,8 +10,8 @@ interface DashboardChartsProps {
 
 export function DashboardCharts({ chartData }: DashboardChartsProps) {
   return (
-    <div className="lg:col-span-2 p-5 rounded-xl border border-slate-800 bg-slate-950/20 backdrop-blur-sm">
-      <p className="text-xs font-bold uppercase tracking-wider mb-6 text-slate-400">
+    <div className="card lg:col-span-2 p-5 rounded-xl backdrop-blur-sm">
+      <p className="text-xs font-bold uppercase tracking-wider mb-6 text-[var(--text2)]">
         Purchases vs Sales Value
       </p>
       <ResponsiveContainer width="100%" height={220}>
@@ -19,29 +19,37 @@ export function DashboardCharts({ chartData }: DashboardChartsProps) {
           data={chartData}
           barSize={44}
           margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+          tabIndex={-1}
+          style={{outline: "none"}}
         >
           <XAxis
             dataKey="label"
-            tick={{ fill: "#94a3b8", fontSize: 11 }}
+            tick={{ fill: "var(--text-subtle)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "#94a3b8", fontSize: 10 }}
+            tick={{ fill: "var(--text-subtle)", fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => fmt(v)}
           />
-          <Tooltip
+          <Tooltip 
+          /* Hover bar background fill*/
+            cursor={{ fill: "var(--text)", opacity: 0.1 }}
+            /* Hover tooltip style*/
             contentStyle={{
-              background: "#020617",
-              border: "1px solid #1e293b",
+              background: "var(--bg2)",
+              border: "1px solid var(--border)",
               borderRadius: 12,
-              color: "#f8fafc",
+              color: "var(--text)",
             }}
+            /* Tool Tip Data*/
+            itemStyle={{ color: "var(--text)" }}
             formatter={(v) => [fmt(Number(v)), ""]}
-            labelStyle={{ color: "#94a3b8", fontWeight: 600, fontSize: 11 }}
+            labelStyle={{ color: "var(--text2)", fontWeight: 600, fontSize: 11 }}
           />
+          /* Chart Bar*/
           <Bar dataKey="value" radius={[6, 6, 0, 0]}>
             {chartData.map((d, i) => (
               <Cell key={i} fill={d.color} fillOpacity={0.85} />

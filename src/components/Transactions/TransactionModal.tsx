@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useId } from "react";
 import { X, Calendar, Calculator, Link2, Unlink } from "lucide-react";
 import type { Transaction, Term, Classification } from "@/types";
 import { useApp } from "@/context/AppContext";
@@ -9,6 +9,7 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   editingId: string | null;
+  mode?: "add" | "edit" | "view";
   activeTerm: Term | null;
   classifications: Classification[];
 }
@@ -17,11 +18,14 @@ export function TransactionModal({
   isOpen,
   onClose,
   editingId,
+  mode = "add",
   activeTerm,
   classifications,
 }: TransactionModalProps) {
   const { transactions, addTransaction, updateTransaction } = useApp();
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const classificationListId = useId();
+  const isViewMode = mode === "view";
 
   // ── FORM CORE LOCAL STATES ─────────────────────────────────────────
   const [category, setCategory] = useState<"Buy" | "Sell">("Buy");
@@ -32,7 +36,7 @@ export function TransactionModal({
   const [price, setPrice] = useState<number | "">("");
   
   // Explicit Inventory Reference Link State
-  const [linkedBuyId, setLinkedBuyId] = useState<string | null>(null);
+  const [linkedBuyUid, setLinkedBuyUid] = useState<string | null>(null);
 
   // Decoupled Ancillary Expense Parameters
   const [agentBagsCount, setAgentBagsCount] = useState<number | "">("");
@@ -56,22 +60,27 @@ export function TransactionModal({
         setDate(target.date || "");
         setClassification(target.classification || "");
         setDescription(target.description || "");
-        const baseBags = target.bags ?? "";
-        setBags(baseBags);
+        const baseBagsValue = target.bags ?? 0;
+        setBags(baseBagsValue);
         setPrice(target.price ?? "");
         
+        const storedLinkedBuyUid = (target as any).linked_buy_uid ||
+          ((target as any).linked_buy_id
+            ? transactions.find((candidate) => candidate.id === (target as any).linked_buy_id)?.uid || null
+            : null);
+
         // Hydrate the relational link state if editing an existing sell transaction
-        setLinkedBuyId((target as any).linked_buy_id || null);
+        setLinkedBuyUid(storedLinkedBuyUid);
         
         const loadedAgentBags = (target as any).agent_bags_count ?? target.agent_bags ?? "";
         setAgentBagsCount(loadedAgentBags);
         setAgentCostPerBag((target as any).agent_cost_per_bag ?? "");
-        setAgentSameAsBase(loadedAgentBags !== "" && baseBags !== "" && Number(loadedAgentBags) === Number(baseBags));
+        setAgentSameAsBase(loadedAgentBags !== "" && baseBagsValue !== 0 && Number(loadedAgentBags) === Number(baseBagsValue));
 
         const loadedTransferBags = (target as any).transfer_bags_count ?? target.transfer_bags ?? "";
         setTransferBagsCount(loadedTransferBags);
         setTransferCostPerBag((target as any).transfer_cost_per_bag ?? "");
-        setTransferSameAsBase(loadedTransferBags !== "" && baseBags !== "" && Number(loadedTransferBags) === Number(baseBags));
+        setTransferSameAsBase(loadedTransferBags !== "" && baseBagsValue !== 0 && Number(loadedTransferBags) === Number(baseBagsValue));
         
         setOtherExp(target.other_exp ?? "");
         setTags(target.tags || "");
@@ -84,7 +93,7 @@ export function TransactionModal({
       setDescription("");
       setBags("");
       setPrice("");
-      setLinkedBuyId(null);
+      setLinkedBuyUid(null);
       setAgentBagsCount("");
       setAgentCostPerBag("");
       setAgentSameAsBase(false);
@@ -133,34 +142,57 @@ export function TransactionModal({
   const unsoldBuyTransactions = useMemo(() => {
     if (!activeTerm) return [];
 
-    const linkedBuyIdsSet = new Set<string>();
+    const linkedBuyUidsSet = new Set<string>();
     transactions.forEach((t) => {
       const isCurrentTerm = t.term_id === activeTerm.id || (t as any).termId === activeTerm.id;
-      if (isCurrentTerm && t.category === "Sell" && (t as any).linked_buy_id) {
+      if (isCurrentTerm && t.category === "Sell") {
+        const linkedBuyUidValue =
+          (t as any).linked_buy_uid ||
+          ((t as any).linked_buy_id
+            ? transactions.find((candidate) => candidate.id === (t as any).linked_buy_id)?.uid || null
+            : null);
+
         if (editingId && t.id === editingId) return;
-        linkedBuyIdsSet.add((t as any).linked_buy_id);
+        if (linkedBuyUidValue) linkedBuyUidsSet.add(linkedBuyUidValue);
       }
     });
 
     return transactions.filter((t) => {
       const isCurrentTerm = t.term_id === activeTerm.id || (t as any).termId === activeTerm.id;
       if (!isCurrentTerm || t.category !== "Buy") return false;
+
+      if (editingId && t.id === editingId) return false;
       
-      return !linkedBuyIdsSet.has(t.id);
+      return !linkedBuyUidsSet.has(t.uid || t.id);
     });
   }, [transactions, activeTerm, editingId]);
 
   // Find transaction details for our currently active local reference link visualization
   const currentLinkedTransaction = useMemo(() => {
-    if (!linkedBuyId) return null;
-    return transactions.find((t) => t.id === linkedBuyId) || null;
-  }, [linkedBuyId, transactions]);
+    if (!linkedBuyUid) return null;
+    return transactions.find((t) => t.uid === linkedBuyUid) || transactions.find((t) => t.id === linkedBuyUid) || null;
+  }, [linkedBuyUid, transactions]);
+
+  const suggestedClassifications = useMemo(() => {
+    const collected = new Set<string>();
+
+    classifications.forEach((c) => {
+      if (c.name?.trim()) collected.add(c.name.trim());
+    });
+
+    transactions.forEach((txn) => {
+      const value = txn.classification?.trim();
+      if (value) collected.add(value);
+    });
+
+    return Array.from(collected).sort((a, b) => a.localeCompare(b));
+  }, [classifications, transactions]);
 
   // ── RELATIONAL HARD-LINK SHORTCUT INJECTOR HANDLER ─────────────────
   function handleInjectShortcut(t: Transaction) {
     // If we are editing an existing record, purely connect the link state without wiping out historical inputs
     if (editingId) {
-      setLinkedBuyId(t.id);
+      setLinkedBuyUid(t.uid || t.id);
       return;
     }
 
@@ -169,7 +201,7 @@ export function TransactionModal({
     setClassification(t.classification || "");
     setDescription(t.description || "");
     setBags(t.bags || "");
-    setLinkedBuyId(t.id);
+    setLinkedBuyUid(t.uid || t.id);
     setPrice(""); 
     
     setAgentBagsCount("");
@@ -184,7 +216,7 @@ export function TransactionModal({
 
   // Break an assigned inventory trace link manually
   function handleClearLink() {
-    setLinkedBuyId(null);
+    setLinkedBuyUid(null);
   }
 
   // ── RECONCILE SUBMIT ROUTE PASS ────────────────────────────────────
@@ -203,7 +235,11 @@ export function TransactionModal({
       bags: bags === "" ? 0 : Number(bags),
       price: price === "" ? 0 : Number(price),
       
-      linked_buy_id: category === "Sell" ? linkedBuyId : null,
+      linked_buy_uid: category === "Sell" ? linkedBuyUid : null,
+      linked_buy_id:
+        category === "Sell"
+          ? (transactions.find((transaction) => (transaction.uid || transaction.id) === linkedBuyUid)?.id || null)
+          : null,
       
       agent_bags_count: calculations.effectiveAgentBags,
       agent_cost_per_bag: agentCostPerBag === "" ? 0 : Number(agentCostPerBag),
@@ -260,7 +296,7 @@ export function TransactionModal({
           {/* Left Panel: Primary Input Form Fields */}
           <form 
             onSubmit={handleSubmit} 
-            className="space-y-4 lg:col-span-7"
+            className={`space-y-4 ${category === "Sell" ? "lg:col-span-7" : "lg:col-span-12"} ${isViewMode ? "opacity-95" : ""}`}
           >
             
             {/* Category Toggle Strip */}
@@ -270,10 +306,13 @@ export function TransactionModal({
                   key={type}
                   type="button"
                   onClick={() => {
+                    if (isViewMode) return;
                     setCategory(type);
                     if (type === "Buy") handleClearLink();
                   }}
-                  className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    isViewMode ? "cursor-default opacity-80" : "cursor-pointer"
+                  } ${
                     category === type
                       ? type === "Buy"
                         ? "bg-rose-500 text-slate-950 shadow-md"
@@ -286,13 +325,27 @@ export function TransactionModal({
               ))}
             </div>
 
-            {/* Inventory Relational Status Banner */}
-            {category === "Sell" && currentLinkedTransaction && (
+            {isViewMode && currentLinkedTransaction && (
               <div className="flex items-center justify-between p-2.5 rounded-xl border border-sky-800/60 bg-sky-950/30 text-sky-400 animate-fade-in text-[11px]">
                 <div className="flex items-center gap-2 truncate">
                   <Link2 size={14} className="animate-pulse flex-shrink-0" />
                   <span className="truncate">
-                    Hard-linked to inventory entry: <strong className="font-sans text-slate-200 font-semibold">"{currentLinkedTransaction.description}"</strong> ({currentLinkedTransaction.bags} bags)
+                    Linked record: <strong className="font-sans text-slate-200 font-semibold">"{currentLinkedTransaction.description}"</strong>
+                    {currentLinkedTransaction.uid ? <span className="text-sky-300"> [{currentLinkedTransaction.uid}]</span> : null}
+                    ({currentLinkedTransaction.bags} bags)
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {category === "Sell" && currentLinkedTransaction && !isViewMode && (
+              <div className="flex items-center justify-between p-2.5 rounded-xl border border-sky-800/60 bg-sky-950/30 text-sky-400 animate-fade-in text-[11px]">
+                <div className="flex items-center gap-2 truncate">
+                  <Link2 size={14} className="animate-pulse flex-shrink-0" />
+                  <span className="truncate">
+                    Hard-linked to inventory entry: <strong className="font-sans text-slate-200 font-semibold">"{currentLinkedTransaction.description}"</strong>
+                    {currentLinkedTransaction.uid ? <span className="text-sky-300"> [{currentLinkedTransaction.uid}]</span> : null}
+                    ({currentLinkedTransaction.bags} bags)
                   </span>
                 </div>
                 <button
@@ -310,8 +363,10 @@ export function TransactionModal({
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Transaction Date</label>
                 <div 
-                  onClick={() => dateInputRef.current?.showPicker()}
-                  className="relative flex items-center justify-between w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus-within:border-slate-700 cursor-pointer group select-none"
+                  onClick={() => {
+                    if (!isViewMode) dateInputRef.current?.showPicker();
+                  }}
+                  className={`relative flex items-center justify-between w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus-within:border-slate-700 group select-none ${isViewMode ? "cursor-default" : "cursor-pointer"}`}
                 >
                   <input
                     ref={dateInputRef}
@@ -319,7 +374,8 @@ export function TransactionModal({
                     required
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    disabled={isViewMode}
+                    className="absolute inset-0 opacity-0 w-full h-full"
                   />
                   <span className="font-mono text-slate-200 group-hover:text-white transition-colors">{date || "Select Date"}</span>
                   <Calendar size={14} className="text-slate-500 group-hover:text-slate-400 transition-colors" />
@@ -328,51 +384,60 @@ export function TransactionModal({
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Classification</label>
-                <select
-                  value={classification}
-                  onChange={(e) => setClassification(e.target.value)}
-                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 cursor-pointer"
-                >
-                  {classifications.map((c) => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
+                {/* Free-text input with datalist to keep dropdown suggestions while allowing typing */}
+                <div>
+                  <input
+                    list={classificationListId}
+                    value={classification}
+                    onChange={(e) => setClassification(e.target.value)}
+                    disabled={isViewMode}
+                    className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 disabled:cursor-default disabled:text-slate-400"
+                  />
+                  <datalist id={classificationListId}>
+                    {suggestedClassifications.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
               </div>
             </div>
 
             {/* Row: Main Structural Descriptions */}
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description Identity Link</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
               <input
                 type="text"
                 placeholder="Ex. Heavy Core Timber Grade A"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700"
+                disabled={isViewMode}
+                className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 disabled:cursor-default disabled:text-slate-400"
               />
             </div>
 
             {/* Row: Metadata Identity References */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">System Tags (Comma Separated)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tags</label>
                 <input
                   type="text"
                   placeholder="clearance, batch2"
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
-                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700"
+                  disabled={isViewMode}
+                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 disabled:cursor-default disabled:text-slate-400"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Receipt Verification URI Reference</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Receipt URL Copy</label>
                 <input
                   type="url"
                   placeholder="https://drive.google.com/..."
                   value={receiptUrl}
                   onChange={(e) => setReceiptUrl(e.target.value)}
-                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 font-mono"
+                  disabled={isViewMode}
+                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 font-mono disabled:cursor-default disabled:text-slate-400"
                 />
               </div>
             </div>
@@ -386,7 +451,8 @@ export function TransactionModal({
                   placeholder="0"
                   value={bags}
                   onChange={(e) => setBags(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 font-mono"
+                  disabled={isViewMode}
+                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 font-mono disabled:cursor-default disabled:text-slate-400"
                 />
               </div>
 
@@ -398,7 +464,8 @@ export function TransactionModal({
                   placeholder="0.00"
                   value={price}
                   onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 font-mono"
+                  disabled={isViewMode}
+                  className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:border-slate-700 font-mono disabled:cursor-default disabled:text-slate-400"
                 />
               </div>
             </div>
@@ -419,10 +486,12 @@ export function TransactionModal({
                         type="checkbox" 
                         checked={agentSameAsBase}
                         onChange={(e) => {
+                          if (isViewMode) return;
                           setAgentSameAsBase(e.target.checked);
                           if (e.target.checked) setAgentBagsCount("");
                         }}
-                        className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-0 accent-emerald-500 w-3 h-3" 
+                        disabled={isViewMode}
+                        className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-0 accent-emerald-500 w-3 h-3 disabled:cursor-default" 
                       />
                       Same as Base Bags
                     </label>
@@ -433,10 +502,10 @@ export function TransactionModal({
                       <input
                         type="number"
                         placeholder={agentSameAsBase ? String(bags || 0) : "Qty"}
-                        disabled={agentSameAsBase}
+                        disabled={isViewMode || agentSameAsBase}
                         value={agentSameAsBase ? "" : agentBagsCount}
                         onChange={(e) => setAgentBagsCount(e.target.value === "" ? "" : Number(e.target.value))}
-                        className="w-full h-8 rounded-md border border-slate-800 bg-slate-950 disabled:bg-slate-900/60 disabled:text-slate-500 px-2 text-xs text-slate-300 focus:outline-none focus:border-slate-700 font-mono"
+                        className="w-full h-8 rounded-md border border-slate-800 bg-slate-950 disabled:bg-slate-900/60 disabled:text-slate-500 px-2 text-xs text-slate-300 focus:outline-none focus:border-slate-700 font-mono disabled:cursor-default"
                       />
                     </div>
                     <div>
@@ -447,7 +516,8 @@ export function TransactionModal({
                         placeholder="Amount"
                         value={agentCostPerBag}
                         onChange={(e) => setAgentCostPerBag(e.target.value === "" ? "" : Number(e.target.value))}
-                        className="w-full h-8 rounded-md border border-slate-800 bg-slate-950 px-2 text-xs text-slate-300 focus:outline-none focus:border-slate-700 font-mono"
+                        disabled={isViewMode}
+                        className="w-full h-8 rounded-md border border-slate-800 bg-slate-950 px-2 text-xs text-slate-300 focus:outline-none focus:border-slate-700 font-mono disabled:cursor-default disabled:text-slate-400"
                       />
                     </div>
                   </div>
@@ -462,10 +532,12 @@ export function TransactionModal({
                         type="checkbox" 
                         checked={transferSameAsBase}
                         onChange={(e) => {
+                          if (isViewMode) return;
                           setTransferSameAsBase(e.target.checked);
                           if (e.target.checked) setTransferBagsCount("");
                         }}
-                        className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-0 accent-emerald-500 w-3 h-3" 
+                        disabled={isViewMode}
+                        className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-0 accent-emerald-500 w-3 h-3 disabled:cursor-default" 
                       />
                       Same as Base Bags
                     </label>
@@ -476,10 +548,10 @@ export function TransactionModal({
                       <input
                         type="number"
                         placeholder={transferSameAsBase ? String(bags || 0) : "Qty"}
-                        disabled={transferSameAsBase}
+                        disabled={isViewMode || transferSameAsBase}
                         value={transferSameAsBase ? "" : transferBagsCount}
                         onChange={(e) => setTransferBagsCount(e.target.value === "" ? "" : Number(e.target.value))}
-                        className="w-full h-8 rounded-md border border-slate-800 bg-slate-950 disabled:bg-slate-900/60 disabled:text-slate-500 px-2 text-xs text-slate-300 focus:outline-none focus:border-slate-700 font-mono"
+                        className="w-full h-8 rounded-md border border-slate-800 bg-slate-950 disabled:bg-slate-900/60 disabled:text-slate-500 px-2 text-xs text-slate-300 focus:outline-none focus:border-slate-700 font-mono disabled:cursor-default"
                       />
                     </div>
                     <div>
@@ -506,7 +578,8 @@ export function TransactionModal({
                   placeholder="0.00"
                   value={otherExp}
                   onChange={(e) => setOtherExp(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="w-full h-8 rounded-md border border-slate-800 bg-slate-950 px-3 text-xs text-slate-300 focus:outline-none focus:border-slate-700 font-mono"
+                  disabled={isViewMode}
+                  className="w-full h-8 rounded-md border border-slate-800 bg-slate-950 px-3 text-xs text-slate-300 focus:outline-none focus:border-slate-700 font-mono disabled:cursor-default disabled:text-slate-400"
                 />
               </div>
             </div>
@@ -543,17 +616,28 @@ export function TransactionModal({
             </div>
 
             {/* Submission Action Strip */}
-            <div className="pt-2 flex justify-end border-t border-slate-800/60">
-              <button
-                type="submit"
-                className="px-6 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-slate-950 hover:brightness-110 shadow-lg shadow-emerald-500/10 transition-all cursor-pointer"
-              >
-                {editingId ? "Commit Updates" : "Save Transaction Record"}
-              </button>
+            <div className="pt-2 flex justify-end gap-3 border-t border-slate-800/60">
+              {isViewMode ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-6 py-2 text-xs font-bold rounded-xl bg-slate-700 text-slate-100 hover:bg-slate-600 transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="px-6 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-slate-950 hover:brightness-110 shadow-lg shadow-emerald-500/10 transition-all cursor-pointer"
+                >
+                  {editingId ? "Commit Updates" : "Save Transaction Record"}
+                </button>
+              )}
             </div>
           </form>
 
-          {/* Right Panel: Active Term Unsold Inventory (Permanently Available for Both Buy & Sell) */}
+          {/* Right Panel: Active Term Unsold Inventory for Sell transactions */}
+          {category === "Sell" && (
           <div className="lg:col-span-5 flex flex-col h-full border-l border-slate-800/80 pl-6 space-y-3 animate-fade-in">
             <div>
               <h3 className="text-xs font-bold tracking-wide text-slate-300 uppercase">
@@ -572,7 +656,7 @@ export function TransactionModal({
                 </div>
               ) : (
                 unsoldBuyTransactions.map((t) => {
-                  const isCurrentSelection = linkedBuyId === t.id;
+                  const isCurrentSelection = linkedBuyUid === (t.uid || t.id);
                   return (
                     <button
                       key={t.id}
@@ -585,10 +669,27 @@ export function TransactionModal({
                       }`}
                     >
                       <div className="truncate space-y-0.5">
-                        <div className={`text-xs font-bold truncate flex items-center gap-1.5 ${isCurrentSelection ? "text-sky-300" : "text-slate-300 group-hover:text-white"}`}>
-                          {isCurrentSelection && <Link2 size={12} className="text-sky-400 flex-shrink-0" />}
-                          {t.description}
+                        <div className={`text-xs font-bold truncate flex items-center gap-4 ${isCurrentSelection ? "text-sky-300" : "text-slate-300 group-hover:text-white"}`}>
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            {isCurrentSelection && <Link2 size={12} className="text-sky-400 flex-shrink-0" />}
+                            <span className="font-mono truncate" title={t.uid || "No UID"}>
+                              {t.uid || "No UID"}
+                            </span>
+                          </span>
+                          {t.tags && (
+                            <span
+                              className="max-w-[45%] truncate rounded border border-slate-700 bg-slate-950/70 px-1.5 py-0.5 text-[9px] font-medium text-slate-400"
+                              title={t.tags}
+                            >
+                              {t.tags}
+                            </span>
+                          )}
                         </div>
+                        {t.description && (
+                          <div className="truncate text-[10px] text-slate-500" title={t.description}>
+                            Condition / Note: {t.description}
+                          </div>
+                        )}
                         <div className="text-[10px] text-slate-500 font-mono tracking-tight flex items-center gap-2">
                           <span>{t.date}</span>
                           <span className="text-slate-700">•</span>
@@ -609,6 +710,7 @@ export function TransactionModal({
               )}
             </div>
           </div>
+          )}
 
         </div>
       </div>
