@@ -12,10 +12,10 @@ import {
   Printer,
   Sun,
 } from "lucide-react";
-import { ImportButton } from "../features/sidebar/Import";
-import { ExportButton } from "../features/sidebar/Export";
-import { GoogleAuthCard } from "@/features/sidebar/GoogleAuthCard";
-import { TermsManager } from "@/features/sidebar/TermsManager";
+import { ImportButton } from "@/features/workspace/Import";
+import { ExportButton } from "@/features/workspace/Export";
+import { GoogleAuthCard } from "@/features/workspace/GoogleAuthCard";
+import { TermsManager } from "@/features/workspace/TermsManager";
 import { useTheme } from "@/context/ThemeProvider";
 
 export default function Sidebar() {

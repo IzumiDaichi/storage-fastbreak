@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef } from "react";
+import { useRef } from "react";
+import type React from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -32,6 +33,8 @@ type ReusableTableProps = {
   loading?: boolean;
   columnCount?: number;
   minWidth?: string;
+  bodyMaxHeight?: string;
+  className?: string;
 
   /**
    * Shared column widths.
@@ -48,11 +51,11 @@ export function ReusableTable({
   loading = false,
   columnCount = 1,
   minWidth = "100%",
+  bodyMaxHeight = "68vh",
   columnWidths,
+  className = "",
 }: ReusableTableProps) {
-  const showPagination =
-    pagination !== undefined &&
-    pagination.totalItems > 0;
+  const showPagination = pagination !== undefined && pagination.totalItems > 0;
 
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const bodyScrollRef = useRef<HTMLDivElement>(null);
@@ -83,13 +86,13 @@ export function ReusableTable({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg4)] shadow-sm">
+    <div className={`overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg4)] shadow-sm ${className}`}>
 
       {/* =====================================================
           HEADER
           ===================================================== */}
 
-      <div>
+      <div ref={headerScrollRef} className="overflow-hidden">
         <table
           className="w-full border-collapse table-fixed text-left text-xs"
           style={{ minWidth }}
@@ -112,6 +115,7 @@ export function ReusableTable({
         onScroll={handleBodyScroll}
         className="max-h-[68vh] overflow-auto"
         style={{
+          maxHeight: bodyMaxHeight,
           scrollbarGutter: "stable",
         }}
       >
@@ -121,7 +125,7 @@ export function ReusableTable({
         >
           {renderColGroup()}
 
-          <tbody className="divide-y divide-[var(--border)]">
+          <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
             {loading ? (
               Array.from({ length: 8 }).map(
                 (_, rowIndex) => (

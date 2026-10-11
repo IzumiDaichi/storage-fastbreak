@@ -205,12 +205,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await syncToDisk(masterTerms, masterTransactions, masterClassifications, updatedCapitalRecords, masterActiveTerm, true);
   }
 
-  async function addTerm(name: string) {
+  async function addTerm(name: string, startingCapital: number) {
     const newTerm: Term = { id: crypto.randomUUID(), name };
     const updated = [...masterTerms, newTerm];
+    const updatedCapitalRecords = [
+      ...masterCapitalRecords,
+      {
+        id: crypto.randomUUID(),
+        term_id: newTerm.id,
+        starting_capital: startingCapital,
+        updated_at: new Date().toISOString(),
+      },
+    ];
     setMasterTerms(updated);
+    setMasterCapitalRecords(updatedCapitalRecords);
     if (!masterActiveTerm) setMasterActiveTerm(newTerm);
-    await syncToDisk(updated, masterTransactions, masterClassifications, masterCapitalRecords, masterActiveTerm || newTerm, true);
+    await syncToDisk(updated, masterTransactions, masterClassifications, updatedCapitalRecords, masterActiveTerm || newTerm, true);
     addToast(`Term ${name} generated.`, "success");
   }
 
@@ -297,7 +307,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const res = await window.electronAPI?.signOutGoogleAccount();
       if (res?.success) {
         clearAllState();
-        addToast("Logged out. Vault locked.", "info");
+        addToast(
+          res.revoked
+            ? "Logged out. Vault locked."
+            : "Signed out locally, but Google could not be reached to revoke access.",
+          res.revoked ? "info" : "error"
+        );
       } else {
         addToast("Sign-out rejected by backend.", "error");
       }

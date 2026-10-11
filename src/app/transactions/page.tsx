@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { CalendarDays, Plus } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { TransactionModal } from "@/components/Transactions/TransactionModal";
-import { TransactionDetailsModal } from "@/components/Transactions/TransactionDetailsModal";
+import { TransactionDetailsModal } from "@/features/transactions/components/TransactionDetailsModal";
+import { TransactionModal } from "@/features/transactions/components/TransactionModal";
 import { useTransactionFilters } from "@/features/transactions/hooks/useTransactionFilters";
 import { TransactionFilters } from "@/features/transactions/components/TransactionFilters";
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";

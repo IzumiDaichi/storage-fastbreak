@@ -1,14 +1,15 @@
-import { calcTxn, calcNetProfit } from "@/lib/calc";
+import { calcNetProfit, calcTxn } from "@/lib/calc";
+import type { Transaction } from "@/types";
 
-export function getDashboardMetrics(termTransactions: any[], starting: number) {
-  const buyTxns = termTransactions.filter((t: any) => t.category === "Buy");
-  const sellTxns = termTransactions.filter((t: any) => t.category === "Sell");
+export function getDashboardMetrics(termTransactions: Transaction[], starting: number) {
+  const buyTxns = termTransactions.filter((t) => t.category === "Buy");
+  const sellTxns = termTransactions.filter((t) => t.category === "Sell");
   const { sellRevenue, buyCost, totalExp, netProfit } = calcNetProfit(termTransactions);
 
-  const totalBags = termTransactions.reduce((sum: number, t: any) => sum + (t.bags || 0), 0);
-  const totalAgent = termTransactions.reduce((sum: number, t: any) => sum + (t.agent_bags || 0) * (t.agent_rate || 0), 0);
-  const totalTransfer = termTransactions.reduce((sum: number, t: any) => sum + (t.transfer_bags || 0) * (t.transfer_rate || 0), 0);
-  const totalOther = termTransactions.reduce((sum: number, t: any) => sum + (t.other_exp || 0), 0);
+  const totalBags = termTransactions.reduce((sum, t) => sum + (t.bags || 0), 0);
+  const totalAgent = termTransactions.reduce((sum, t) => sum + (t.agent_bags || 0) * (t.agent_rate || 0), 0);
+  const totalTransfer = termTransactions.reduce((sum, t) => sum + (t.transfer_bags || 0) * (t.transfer_rate || 0), 0);
+  const totalOther = termTransactions.reduce((sum, t) => sum + (t.other_exp || 0), 0);
 
   const roi = buyCost > 0 ? (netProfit / buyCost) * 100 : 0;
   const margin = sellRevenue > 0 ? (netProfit / sellRevenue) * 100 : 0;
@@ -31,10 +32,10 @@ export function getDashboardMetrics(termTransactions: any[], starting: number) {
   };
 }
 
-export function getClassificationItems(termTransactions: any[]) {
+export function getClassificationItems(termTransactions: Transaction[]) {
   const classMap: Record<string, { bags: number; count: number; net: number }> = {};
 
-  termTransactions.forEach((t: any) => {
+  termTransactions.forEach((t) => {
     const key = t.classification || "Unclassified";
     if (!classMap[key]) classMap[key] = { bags: 0, count: 0, net: 0 };
     classMap[key].bags += t.bags || 0;
@@ -45,7 +46,7 @@ export function getClassificationItems(termTransactions: any[]) {
   return Object.entries(classMap).sort((a, b) => b[1].net - a[1].net);
 }
 
-export function getCashflowRows(termTransactions: any[], starting: number, sortOrder: "desc" | "asc") {
+export function getCashflowRows(termTransactions: Transaction[], starting: number, sortOrder: "desc" | "asc") {
   const baseChronological = [...termTransactions].sort((a, b) => a.date.localeCompare(b.date));
   let running = starting;
 

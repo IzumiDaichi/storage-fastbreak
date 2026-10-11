@@ -1,13 +1,16 @@
 {
   "name": "storage-fastbreak",
   "version": "0.3.0",
+  "description": "Portable desktop ledger for storage and transaction tracking.",
+  "author": "Storage Fastbreak",
   "main": "main/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "electron": "electron ."
+    "electron": "electron .",
+    "dist:win:portable": "npm run build && electron-builder --win portable && node scripts/copy-portable-config.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
@@ -25,9 +28,43 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.storagefastbreak.app",
+    "productName": "Storage Fastbreak",
+    "directories": {
+      "output": "release"
+    },
+    "artifactName": "${productName}-${version}-portable.${ext}",
+    "asar": true,
+    "files": [
+      "main/**/*",
+      "public/**/*",
+      ".next/**/*",
+      "next.config.ts",
+      "package.json",
+      "!.next/dev/**",
+      "!.next/cache/**",
+      "!.next/diagnostics/**",
+      "!.next/trace",
+      "!**/*.map",
+      "!**/.env",
+      "!**/.env.*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
   }
 }

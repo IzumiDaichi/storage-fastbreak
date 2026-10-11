@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 import { TagPill } from "@/components/ui";
-import { ReusableTable } from "@/components/Table";
+import { ReusableTable } from "@/components/ui/ReusableTable";
 import { fmt, fmtSigned } from "@/lib/calc";
 import type { Transaction } from "@/types";
 

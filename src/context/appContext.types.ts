@@ -23,7 +23,7 @@ export interface AppContextType {
   setCapitalRecords: (records: Capital[]) => void;
   switchTerm: (term: Term | null) => void;
   updateCapitalRecord: (termId: string, startingCapital: number) => Promise<void>;
-  addTerm: (name: string) => Promise<void>;
+  addTerm: (name: string, startingCapital: number) => Promise<void>;
   updateTerm: (id: string, newName: string) => Promise<void>;
   deleteTerm: (id: string) => Promise<void>;
   addTransaction: (payload: any) => Promise<void>;

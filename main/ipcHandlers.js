@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { ipcMain, shell } = require("electron");
 const { AUTH_PATH, getDataPath } = require("./constants");
-const { getCurrentEmail, getValidAccessToken } = require("./auth");
+const { getCurrentEmail, getValidAccessToken, signOutCurrentAuth } = require("./auth");
 const {
   clearPendingDriveUpload,
   downloadDriveFile,
@@ -139,6 +139,13 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("google:request-auth", async () => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return {
+        success: false,
+        error: "Google OAuth is not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to the .env file beside the portable executable, then restart the app.",
+      };
+    }
+
     const scopes = [
       "https://www.googleapis.com/auth/drive.appdata",
       "https://www.googleapis.com/auth/userinfo.email",
@@ -152,7 +159,7 @@ function registerIpcHandlers() {
     authUrl.searchParams.append("access_type", "offline");
     authUrl.searchParams.append("prompt", "consent");
 
-    console.log("[AUTH] Opening OAuth URL with scopes:", scopes);
+    console.log("[AUTH] Opening Google authorization request.");
 
     try {
       await shell.openExternal(authUrl.toString());
@@ -164,10 +171,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle("google:sign-out", async () => {
     try {
-      if (fs.existsSync(AUTH_PATH)) fs.unlinkSync(AUTH_PATH);
+      const { revoked } = await signOutCurrentAuth();
       clearPendingDriveUpload();
-      console.log("[AUTH] Signed out, auth file removed.");
-      return { success: true };
+      console.log("[AUTH] Signed out and local credentials removed.");
+      return { success: true, revoked };
     } catch (error) {
       return { success: false, error: error.message };
     }

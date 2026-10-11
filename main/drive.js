@@ -26,6 +26,9 @@ function driveRequest(options, body = null) {
       });
     });
 
+    req.setTimeout(5000, () => {
+      req.destroy(new Error("Google Drive request timed out."));
+    });
     req.on("error", reject);
     if (body) req.write(body);
     req.end();
@@ -77,6 +80,9 @@ async function downloadDriveFile(accessToken, fileId) {
       }
     );
 
+    req.setTimeout(5000, () => {
+      req.destroy(new Error("Google Drive download timed out."));
+    });
     req.on("error", reject);
     req.end();
   });
@@ -150,7 +156,7 @@ function scheduleDriveUpload(payload) {
     return;
   }
   state.pendingPayload = payload;
-    state.pendingPayloadHash = payloadHash;
+  state.pendingPayloadHash = payloadHash;
   if (state.driveUploadTimer) {
     clearTimeout(state.driveUploadTimer);
     state.driveUploadTimer = null;
@@ -164,70 +170,74 @@ function scheduleDriveUpload(payload) {
     if (!state.pendingPayload) return;
 
     const dataToUpload = state.pendingPayload;
+    const dataHash = state.pendingPayloadHash;
     state.pendingPayload = null;
+    state.pendingPayloadHash = null;
     state.driveUploadTimer = null;
-    state.lastDriveUploadTime = Date.now();
 
-    try {
-      console.log("\n========== DRIVE SYNC ==========");
-      console.log("[DRIVE] Preparing upload...");
-
-      const accessToken = await getValidAccessToken();
-      const existingFile = await findDriveFile(accessToken);
-
-      console.log("[DRIVE] Existing file:", existingFile ? existingFile.id : "NONE");
-
-      const response = await uploadDriveFile(accessToken, dataToUpload, existingFile?.id || null);
-
-      console.log("[DRIVE] Upload response:");
-      console.log(JSON.stringify(response, null, 2));
-
-      if (response.status >= 200 && response.status < 300) {
-        console.log("[DRIVE] Upload successful.");
-        state.lastDriveUploadHash = payloadHash;
-
-        if (state.mainWindow) {
-          state.mainWindow.webContents.send("drive:sync-status", { synced: true });
-        }
-      } else {
-        throw new Error(JSON.stringify(response.body));
-      }
-    } catch (error) {
-      console.error("[DRIVE] Upload FAILED");
-      console.error(error);
-
-      if (state.mainWindow) {
-        state.mainWindow.webContents.send("drive:sync-status", {
-          synced: false,
-          error: error.message,
-        });
-      }
-    }
-
-    console.log("================================\n");
+    const activeUpload = uploadPendingPayload(
+      dataToUpload,
+      dataHash || hashPayload(dataToUpload),
+    );
+    state.driveUploadPromise = Promise.all([
+      state.driveUploadPromise,
+      activeUpload,
+    ]).then(() => undefined);
+    await activeUpload;
   }, delay);
 
   console.log(`[DRIVE] Upload scheduled in ${delay}ms`);
 }
 
 async function flushPendingDriveUpload() {
+  if (state.driveUploadTimer) {
+    clearTimeout(state.driveUploadTimer);
+    state.driveUploadTimer = null;
+  }
+
+  await state.driveUploadPromise;
+
+  if (state.driveUploadTimer) {
+    clearTimeout(state.driveUploadTimer);
+    state.driveUploadTimer = null;
+  }
+
   if (!state.pendingPayload) return;
 
   console.log("[QUIT] Flushing pending Drive upload...");
-  if (state.driveUploadTimer) clearTimeout(state.driveUploadTimer);
+  const payload = state.pendingPayload;
+  const payloadHash = state.pendingPayloadHash || hashPayload(payload);
+  state.pendingPayload = null;
+  state.pendingPayloadHash = null;
+  await uploadPendingPayload(payload, payloadHash, true);
+}
 
-  const payloadHash = hashPayload(state.pendingPayload);
+async function uploadPendingPayload(payload, payloadHash, isQuitFlush = false) {
+  state.lastDriveUploadTime = Date.now();
   try {
     const accessToken = await getValidAccessToken();
     const existingFile = await findDriveFile(accessToken);
-    await uploadDriveFile(accessToken, state.pendingPayload, existingFile?.id || null);
-    state.lastDriveUploadHash = payloadHash;
-    console.log("[QUIT] Final Drive sync complete.");
-  } catch (error) {
-    console.warn("[QUIT] Final Drive sync failed:", error.message);
-  }
+    const response = await uploadDriveFile(accessToken, payload, existingFile?.id || null);
 
-  clearPendingDriveUpload();
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(JSON.stringify(response.body));
+    }
+
+    state.lastDriveUploadHash = payloadHash;
+    console.log(isQuitFlush ? "[QUIT] Final Drive sync complete." : "[DRIVE] Upload successful.");
+    if (state.mainWindow) {
+      state.mainWindow.webContents.send("drive:sync-status", { synced: true });
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(isQuitFlush ? "[QUIT] Final Drive sync failed:" : "[DRIVE] Upload failed:", error);
+    if (state.mainWindow) {
+      state.mainWindow.webContents.send("drive:sync-status", {
+        synced: false,
+        error: message,
+      });
+    }
+  }
 }
 
 module.exports = {

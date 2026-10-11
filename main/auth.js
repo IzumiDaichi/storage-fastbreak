@@ -54,6 +54,9 @@ function refreshAccessToken(refreshToken) {
       });
     });
 
+    req.setTimeout(5000, () => {
+      req.destroy(new Error("Google token refresh timed out."));
+    });
     req.on("error", reject);
     req.write(postData);
     req.end();
@@ -153,6 +156,59 @@ function fetchUserEmail(accessToken) {
   });
 }
 
+function revokeToken(token) {
+  return new Promise((resolve, reject) => {
+    const postData = new URLSearchParams({ token }).toString();
+    const req = https.request(
+      {
+        hostname: "oauth2.googleapis.com",
+        path: "/revoke",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Length": Buffer.byteLength(postData),
+        },
+      },
+      (res) => {
+        res.resume();
+        res.on("end", () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Google token revocation failed with status ${res.statusCode}.`));
+          }
+        });
+      }
+    );
+
+    req.setTimeout(5000, () => {
+      req.destroy(new Error("Google token revocation timed out."));
+    });
+    req.on("error", reject);
+    req.write(postData);
+    req.end();
+  });
+}
+
+async function signOutCurrentAuth() {
+  const auth = getCurrentAuth();
+  const token = auth?.tokens?.refresh_token || auth?.tokens?.access_token;
+  let revoked = !token;
+
+  if (fs.existsSync(AUTH_PATH)) fs.unlinkSync(AUTH_PATH);
+
+  try {
+    if (token) {
+      await revokeToken(token);
+      revoked = true;
+    }
+  } catch (error) {
+    console.error("[AUTH] Remote token revocation failed; local credentials were removed.", error);
+  }
+
+  return { revoked };
+}
+
 function startLocalAuthListenerServer() {
   const server = http.createServer(async (req, res) => {
     if (!req.url.startsWith("/api/auth/callback")) return;
@@ -213,5 +269,6 @@ module.exports = {
   getCurrentAuth,
   getCurrentEmail,
   getValidAccessToken,
+  signOutCurrentAuth,
   startLocalAuthListenerServer,
 };
